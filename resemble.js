@@ -6,6 +6,11 @@ URL: https://github.com/Huddle/Resemble.js
 */
 
 (function(_this){
+	// BEGIN Modification
+	var binding = require('./lib/server'),
+				createCanvas = binding.createCanvas,
+				loadImageData = binding.loadImageData;
+	// END Modification
 
 	_this['resemble'] = function( fileData ){
 
@@ -75,33 +80,7 @@ URL: https://github.com/Huddle/Resemble.js
 			triggerDataUpdate();
 		}
 
-		function loadImageData( fileData, callback ){
-			var hiddenImage = new Image();
-			var fileReader = new FileReader();
-			
-			fileReader.onload = function (event) {
-				hiddenImage.src = event.target.result;
-			};
-
-			hiddenImage.onload = function() {
-				
-				var hiddenCanvas =  document.createElement('canvas');
-				var imageData;
-				var width = hiddenImage.width;
-				var height = hiddenImage.height;
-
-				hiddenCanvas.width = width;
-				hiddenCanvas.height = height;
-				hiddenCanvas.getContext('2d').drawImage(hiddenImage, 0, 0, width, height);
-				imageData = hiddenCanvas.getContext('2d').getImageData(0, 0, width, height);
-				
-				images.push(imageData);
-
-				callback(imageData, width, height);
-			};
-				
-			fileReader.readAsDataURL(fileData);
-		}
+		// Modification: Removed loadImageData
 
 		function isColorSimilar(a, b, color){
 
@@ -287,13 +266,12 @@ URL: https://github.com/Huddle/Resemble.js
 
 		function analyseImages(img1, img2, width, height){
 
-			var hiddenCanvas = document.createElement('canvas');
+			// BEGIN Modification
+			var hiddenCanvas = createCanvas(width, height);
 
 			var data1 = img1.data;
 			var data2 = img2.data;
-
-			hiddenCanvas.width = width;
-			hiddenCanvas.height = height;
+			// END Modification
 
 			var context = hiddenCanvas.getContext('2d');
 			var imgd = context.createImageData(width,height);
@@ -338,7 +316,7 @@ URL: https://github.com/Huddle/Resemble.js
 					}
 					return;
 				}
-				
+
 				if( isRGBSimilar(pixel1, pixel2) ){
 					copyPixel(targetPix, offset, pixel2);
 
@@ -365,6 +343,13 @@ URL: https://github.com/Huddle/Resemble.js
 			data.misMatchPercentage = (mismatchCount / (height*width) * 100).toFixed(2);
 			data.analysisTime = Date.now() - time;
 
+
+			// BEGIN Modification
+			data.pngStream = function() {
+				context.putImageData(imgd, 0, 0);
+				return hiddenCanvas.pngStream();
+			};
+			// END Modification
 			data.getImageDataUrl = function(text){
 				var barHeight = 0;
 
@@ -410,9 +395,9 @@ URL: https://github.com/Huddle/Resemble.js
 			var context;
 
 			if(img.height < h || img.width < w){
-				c = document.createElement('canvas');
-				c.width = w;
-				c.height = h;
+				// BEGIN Modification
+				c = createCanvas(w, h);
+				// END Modification
 				context = c.getContext('2d');
 				context.putImageData(img, 0, 0);
 				return context.getImageData(0, 0, w, h);
@@ -423,9 +408,14 @@ URL: https://github.com/Huddle/Resemble.js
 
 		function compare(one, two){
 
-			function onceWeHaveBoth(){
+			// BEGIN Modification
+			function onceWeHaveBoth(imageData){
 				var width;
 				var height;
+
+				images.push(imageData);
+				// END Modification
+
 				if(images.length === 2){
 					width = images[0].width > images[1].width ? images[0].width : images[1].width;
 					height = images[0].height > images[1].height ? images[0].height : images[1].height;
@@ -449,7 +439,8 @@ URL: https://github.com/Huddle/Resemble.js
 
 		function getCompareApi(param){
 
-			var hasMethod = typeof param === 'function';
+			var hasMethod = typeof param === 'function',
+					secondFileData;
 
 			if( !hasMethod ){
 				// assume it's file data
@@ -458,7 +449,6 @@ URL: https://github.com/Huddle/Resemble.js
 
 			var self = {
 				ignoreNothing: function(){
-					
 					tolerance.red = 16;
 					tolerance.green = 16;
 					tolerance.blue = 16;
@@ -486,7 +476,6 @@ URL: https://github.com/Huddle/Resemble.js
 					return self;
 				},
 				ignoreColors: function(){
-					
 					tolerance.minBrightness = 16;
 					tolerance.maxBrightness = 240;
 
