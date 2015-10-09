@@ -10,7 +10,7 @@
     "node": ">= 0.8"
   },
   "dependencies": {
-    "canvas": "~1.2.0",
+    "canvas": "^1.2.9",
     "graceful-fs": "~1.2.2"
   },
   "scripts": {},
